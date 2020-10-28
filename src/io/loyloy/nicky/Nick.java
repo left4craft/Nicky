@@ -139,7 +139,7 @@ public class Nick
             nickname = nickname.replaceAll( Nicky.getCharacters(), "" );
         }
 
-        return nickname + ChatColor.RESET;
+        return nickname + "&r";
     }
 
     public static boolean isUsed( String nick )
