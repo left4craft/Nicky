@@ -130,7 +130,7 @@ public class Nick
 
         if( addPrefix && !Nicky.getNickPrefix().equals( "" ) )
         {
-            String prefix = ChatColor.translateAlternateColorCodes( '&', Nicky.getNickPrefix() );
+            String prefix = "test"; //ChatColor.translateAlternateColorCodes( '&', Nicky.getNickPrefix() );
             nickname = prefix + nickname;
         }
 
