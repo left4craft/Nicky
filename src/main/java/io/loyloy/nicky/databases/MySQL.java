@@ -6,6 +6,8 @@ import org.bukkit.configuration.Configuration;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+
+
 public class MySQL extends SQL
 {
     public MySQL( Nicky plugin )
@@ -19,14 +21,16 @@ public class MySQL extends SQL
 
         try
         {
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName ("org.mariadb.jdbc.Driver");
 
-            String url = "jdbc:mysql://" + config.getString("host") + ":" + config.getString("port") + "/" + config.getString("database");
+            String url = "jdbc:mariadb://" + config.getString("host") + ":" + config.getString("port") + "/" + config.getString("database");
 
             return DriverManager.getConnection( url, config.getString( "user" ), config.getString( "password" ) );
         }
         catch (Exception e)
         {
+
+            e.printStackTrace();
             return null;
         }
     }
