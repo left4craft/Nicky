@@ -1,7 +1,6 @@
 package io.loyloy.nicky.commands;
 
-import io.loyloy.nicky.Nick;
-import io.loyloy.nicky.Nicky;
+import io.loyloy.nicky.*;
 import io.loyloy.nicky.databases.SQL;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -9,122 +8,114 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
 
-public class RealNameCommand implements CommandExecutor
+public class RealNameCommand extends NickyCommandExecutor
 {
-    private HashMap<String, HashMap<String, String>> foundPlayers = new HashMap<>();
-    private HashMap<String, String> onlinePlayers = new HashMap<>();
-    private HashMap<String, String> offlinePlayers = new HashMap<>();
+    private static final int DEFAULT_MIN_SEARCH_LENGTH = 1;
 
-    private static final int DEFAULT_MIN_SEARCH_LENGTH = 3;
-
-    public RealNameCommand()
+    public RealNameCommand( Nicky plugin )
     {
+        super( plugin );
     }
 
-    public boolean onCommand( CommandSender sender, Command command, String s, String[] args )
-    {
-        runAsPlayer( sender, args );
-
-        return true;
+    @Override
+    protected void execute(Player sender, Command cmd, String label, String[] args) {
+        run( sender, args );
     }
 
-    private void runAsPlayer( CommandSender sender, String[] args )
-    {
-        if( sender.hasPermission( "nicky.realname" ) )
-        {
-            if( args.length < 1 )
-            {
-                sender.sendMessage( Nicky.getPrefix() + "To check a nickname do " + ChatColor.YELLOW + "/realname <search>" );
-                return;
-            }
-
-            String search = args[0];
-
-            int minSearchLength = DEFAULT_MIN_SEARCH_LENGTH;
-            if( DEFAULT_MIN_SEARCH_LENGTH < Nicky.getMinLength() )
-            {
-                minSearchLength = Nicky.getMinLength();
-            }
-            if( search.length() < minSearchLength )
-            {
-                sender.sendMessage( Nicky.getPrefix() + ChatColor.RED + "Your search must be at least " + minSearchLength + " characters!" );
-                return;
-            }
-
-            findPlayers( search );
-
-            if( foundPlayers.isEmpty() )
-            {
-                sender.sendMessage( ChatColor.GREEN + "No one has a nickname containing: " + ChatColor.YELLOW + args[0] );
-            }
-            else
-            {
-                sender.sendMessage( ChatColor.GREEN + "Players with a nickname containing: " + ChatColor.YELLOW + args[0] );
-
-                for( Map.Entry<String, String> player : foundPlayers.get( "online" ).entrySet() )
-                {
-                    sender.sendMessage( ChatColor.YELLOW + player.getKey() + ChatColor.GRAY + " -> " + ChatColor.YELLOW + player.getValue() );
-                }
-                if( ! foundPlayers.get( "offline" ).isEmpty() )
-                {
-                    sender.sendMessage( ChatColor.GRAY + "Players not on your server or offline:" );
-                    for( Map.Entry<String, String> player : foundPlayers.get( "offline" ).entrySet() )
-                    {
-                        sender.sendMessage( ChatColor.YELLOW + player.getKey() + ChatColor.GRAY + " -> " + ChatColor.YELLOW + player.getValue() );
-                    }
-                }
-            }
-        }
-        else
-        {
-            sender.sendMessage( Nicky.getPrefix() + ChatColor.RED + "Sorry, you don't have permission to check real names." );
-        }
+    @Override
+    protected void executeFromConsole(CommandSender sender, Command cmd, String label, String[] args) {
+        run( sender, args );
     }
 
-    private void findPlayers( String searchWord )
+    private void run(CommandSender sender, String[] args )
     {
-        offlinePlayers.clear();
-        onlinePlayers.clear();
+        final NickyMessages messages = Nicky.getMessages();
 
-        List<SQL.SearchedPlayer> searchedPlayers = Nick.searchGet( searchWord );
-
-        if( searchedPlayers == null )
-        {
+        // Show no permission message if no perms.
+        if( !sender.hasPermission( "nicky.realname" ) ) {
+            sender.sendMessage( messages.PREFIX + messages.ERROR_REALNAME_PERMISSION );
             return;
         }
-        for( SQL.SearchedPlayer searchedPlayer : searchedPlayers )
+
+        // Show usage message if invalid usage.
+        if( args.length != 1 )
         {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer( UUID.fromString( searchedPlayer.getUuid() ) );
-
-            String playersNick = searchedPlayer.getNick();
-
-            if( offlinePlayer.isOnline() )
-            {
-                Nick nick = new Nick( offlinePlayer.getPlayer() );
-                playersNick = nick.format( playersNick );
-
-                onlinePlayers.put( playersNick, searchedPlayer.getName() );
-            }
-            else
-            {
-                playersNick = ChatColor.translateAlternateColorCodes( '&', playersNick );
-
-                offlinePlayers.put( playersNick, searchedPlayer.getName() );
-            }
+            sender.sendMessage( messages.HELP_COMMAND_REALNAME );
+            return;
         }
 
-        foundPlayers = new HashMap<>();
+        // Search.
+        String search = args[0];
 
-        if( !onlinePlayers.isEmpty() || !offlinePlayers.isEmpty() )
+        int minSearchLength = DEFAULT_MIN_SEARCH_LENGTH;
+        if( DEFAULT_MIN_SEARCH_LENGTH < Nicky.getMinLength() )
         {
-            foundPlayers.put( "online", onlinePlayers );
-            foundPlayers.put( "offline", offlinePlayers );
+            minSearchLength = Nicky.getMinLength();
+        }
+        if( search.length() < minSearchLength )
+        {
+            sender.sendMessage(
+                    messages.PREFIX +
+                    messages.ERROR_SEARCH_TOO_SHORT
+                            .replace( "{min}", String.valueOf( Nicky.getMinLength() ) )
+                            .replace( "{max}", String.valueOf( Nicky.getMaxLength() ) )
+            );
+            return;
+        }
+
+        try {
+            Set<NickQuery.Result> results = NickQuery.find( search ).get();
+            
+            // Send a message if the result is empty.
+            if( results.isEmpty() )
+            {
+                sender.sendMessage(
+                        messages.PREFIX +
+                        messages.REALNAME_NOBODY
+                                .replace( "{query}", search )
+                );
+                return;
+            }
+            
+            // Send a message with the results.
+            sender.sendMessage(
+                    messages.PREFIX +
+                    messages.REALNAME_FOUND
+                            .replace( "{query}", search )
+            );
+
+            // Online players first.
+            for( NickQuery.Result result : results )
+            {
+                if ( !result.getPlayer().isOnline() ) continue;
+                sender.sendMessage(
+                        messages.PREFIX +
+                        messages.REALNAME_FOUND_ENTRY
+                                .replace("{nickname}", result.getPlainNickname())
+                                .replace("{username}", result.getUsername())
+                );
+            }
+            
+            // Offline players next.
+            for( NickQuery.Result result : results )
+            {
+                if ( result.getPlayer().isOnline() ) continue;
+                sender.sendMessage(
+                        messages.PREFIX +
+                        messages.REALNAME_FOUND_ENTRY
+                                .replace("{nickname}", result.getPlainNickname())
+                                .replace("{username}", result.getUsername())
+                );
+            }
+        } catch ( Exception ex ) {
+            throw new RuntimeException( ex );
         }
     }
+    
 }
