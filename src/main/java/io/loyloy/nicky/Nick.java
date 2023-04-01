@@ -93,7 +93,7 @@ public class Nick
         }
         
         // Replace chat color codes with ampersand.
-        nickname = nickname.replace( ChatColor.COLOR_CHAR, '&' );
+        // nickname = nickname.replace( ChatColor.COLOR_CHAR, '&' );
 
         // Safeguard against invalid nicknames.
         if ( !isValid( nickname ) )
@@ -122,7 +122,7 @@ public class Nick
      */
     public static String formatForDatabase( String nickname )
     {
-        if( nickname.length() > Nicky.getMaxLength() )
+        if( nickname.length() > SQL.NICKNAME_COLUMN_MAX )
         {
             nickname = nickname.substring( 0, Nicky.getMaxLength() + 1 );
         }
@@ -145,12 +145,13 @@ public class Nick
         // Add prefix.
         if( !Nicky.getNickPrefix().isEmpty() )
         {
-            String prefix = ChatColor.translateAlternateColorCodes( '&', Nicky.getNickPrefix() );
-            builder.append(prefix);
+            // String prefix = ChatColor.translateAlternateColorCodes( '&', Nicky.getNickPrefix() );
+            builder.append(Nicky.getNickPrefix());
         }
         
         // Add nickname.
-        builder.append( ChatColor.translateAlternateColorCodes( '&', stripInvalid( nickname ) ) );
+        // builder.append( ChatColor.translateAlternateColorCodes( '&', stripInvalid( nickname ) ) );
+        builder.append( Colors.format(stripInvalid( nickname )).toLegacyText() );
         
         // Add reset character.
         builder.append( ChatColor.RESET.toString() );
@@ -182,13 +183,16 @@ public class Nick
      */
     public static UUID getOwner( String nick )
     {
-        String nickPlain = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', formatForDatabase( nick ) ) );
+        // String nickPlain = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', formatForDatabase( nick ) ) );
+        String nickPlain = Colors.strip(formatForDatabase( nick ));
         return database.getOwner( nickPlain );
     }
 
     public static boolean isBlacklisted( String nick )
     {
-        String strippedNick = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nick ) )
+        // String strippedNick = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nick ) )
+        //     .toLowerCase();
+        String strippedNick = Colors.strip(nick)
             .toLowerCase();
 
         for( String word : Nicky.getBlacklist() )
@@ -210,10 +214,15 @@ public class Nick
      */
     public static boolean isValid( String nick )
     {
-        if ( nick.length() < Nicky.getMinLength() || nick.length() > Nicky.getMaxLength() || nick.length() > SQL.NICKNAME_COLUMN_MAX ) {
+
+        String strippedNickname = Colors.strip(nick);
+
+        if ( strippedNickname.length() < Nicky.getMinLength() || strippedNickname.length() > Nicky.getMaxLength() || nick.length() > SQL.NICKNAME_COLUMN_MAX ) {
             return false;
         }
         
+        nick = Colors.strip(nick);
+
         String invalidCharacters = Nicky.getCharacters();
         if ( !invalidCharacters.isEmpty() )
         {

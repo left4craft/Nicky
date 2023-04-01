@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import io.loyloy.nicky.Colors;
 import io.loyloy.nicky.Nick;
 import io.loyloy.nicky.Nicky;
 import io.loyloy.nicky.NickyCommandExecutor;
@@ -12,7 +13,6 @@ import io.loyloy.nicky.databases.SQL;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -33,7 +33,8 @@ public class NickCommand extends NickyCommandExecutor
     private String nicknameProblems( String nickname, CommandSender player )
     {
         final NickyMessages messages = Nicky.getMessages();
-        String strippedNickname = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nickname ) );
+        String strippedNickname = Colors.strip(nickname);
+        // String strippedNickname = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nickname ) );
         
         if( strippedNickname.length() < Nicky.getMinLength() )
         {
@@ -63,15 +64,18 @@ public class NickCommand extends NickyCommandExecutor
             // Check for an invalid color.
             // I'm not sure if Bukkit will throw or return null, so we cover both bases here.
             try {
-                if ( ChatColor.getByChar(code) == null ) throw new ClassCastException();
+                if ( ChatColor.getByChar(code) == null && code != '!' && code != '#' ) throw new ClassCastException();
             } catch ( ClassCastException ex ) {
                 return messages.PREFIX +
                         messages.ERROR_NICKNAME_COLOR_INVALID
                                 .replace( "{code}", String.valueOf( code ) );
             }
             
+            String permission = "nicky.color." + code;
+            if (code == '!' || code == '#') permission = "nicky.color.hex";
+
             // Check if the color is allowed. 
-            if ( player != null && !player.hasPermission("nicky.color." + code) )
+            if ( player != null && !player.hasPermission(permission) )
             {
                 return messages.PREFIX + 
                         messages.ERROR_NICKNAME_COLOR_NO_PERMISSION
@@ -135,7 +139,7 @@ public class NickCommand extends NickyCommandExecutor
     private void setNickname( CommandSender sender, OfflinePlayer target, String nickname )
     {
         final NickyMessages messages = Nicky.getMessages();
-        final String nicknamePlain = ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nickname ) );
+        final String nicknamePlain = Colors.strip( nickname );
         
         // If the nickname is the same as the player name, run /delnick.
         if( nickname.equals( target.getName() ) )

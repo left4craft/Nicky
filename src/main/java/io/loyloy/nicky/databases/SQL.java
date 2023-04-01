@@ -1,5 +1,6 @@
 package io.loyloy.nicky.databases;
 
+import io.loyloy.nicky.Colors;
 import io.loyloy.nicky.Nicky;
 
 import org.bukkit.ChatColor;
@@ -229,7 +230,7 @@ public abstract class SQL
     {
 
         ArrayList<HashMap<String,String>> data = query( "SELECT uuid FROM $table WHERE nick_plain = ?;",
-                statement -> statement.setString( 1, ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nick ) ) ),
+                statement -> statement.setString( 1, Colors.strip( nick )  ),
                 true
         );
 
@@ -250,7 +251,7 @@ public abstract class SQL
                 statement -> {
                     statement.setString( 1, uuid );
                     statement.setString( 2, nick );
-                    statement.setString( 3, ChatColor.stripColor( ChatColor.translateAlternateColorCodes( '&', nick ) ) );
+                    statement.setString( 3, Colors.strip( nick ) );
                     statement.setString( 4, name );
                 },
                 false

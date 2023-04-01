@@ -50,7 +50,7 @@ public class NickQuery {
 		 */
 		public String getPlainNickname()
 		{
-			return ChatColor.stripColor(nickname);
+			return Colors.strip(nickname);
 		}
 
 		/**
