@@ -243,7 +243,7 @@ public class Nicky extends JavaPlugin
         }
         if( ! config.isSet( "characters" ) )
         {
-            config.set( "characters", "[^a-zA-Z0-9_§]" );
+            config.set( "characters", "[^a-zA-Z0-9_&!#]" );
         }
         if( ! config.isSet( "blacklist" ) )
         {
